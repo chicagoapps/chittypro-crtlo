@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { analyzeRTLOQuestion, analyzeLeaseCompliance, generateRTLODocument } from "./openai";
 import { insertPropertySchema, insertRTLOQuestionSchema, insertDocumentSchema } from "@shared/schema";
 
@@ -17,26 +16,11 @@ if (process.env.STRIPE_SECRET_KEY) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
 
   // Property verification routes
-  app.post("/api/properties", isAuthenticated, async (req: any, res) => {
+  app.post("/api/properties", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const propertyData = insertPropertySchema.parse({ ...req.body, userId });
+      const propertyData = insertPropertySchema.parse({ ...req.body, userId: "anonymous" });
       
       // Determine RTLO coverage based on property details
       let isRtloCovered = true;
@@ -59,10 +43,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/properties", isAuthenticated, async (req: any, res) => {
+  app.get("/api/properties", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const properties = await storage.getPropertiesByUser(userId);
+      const properties = await storage.getPropertiesByUser("anonymous");
       res.json(properties);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -71,9 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // RTLO Q&A routes
-  app.post("/api/rtlo-questions", isAuthenticated, async (req: any, res) => {
+  app.post("/api/rtlo-questions", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const { question } = req.body;
       
       if (!question) {
@@ -84,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysis = await analyzeRTLOQuestion(question);
       
       const rtloQuestion = await storage.createRTLOQuestion({
-        userId,
+        userId: "anonymous",
         question,
         answer: analysis.answer,
         rtloSection: analysis.rtloSection,
@@ -98,10 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/rtlo-questions", isAuthenticated, async (req: any, res) => {
+  app.get("/api/rtlo-questions", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const questions = await storage.getRTLOQuestionsByUser(userId);
+      const questions = await storage.getRTLOQuestionsByUser("anonymous");
       res.json(questions);
     } catch (error) {
       console.error("Error fetching RTLO questions:", error);
@@ -110,9 +91,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document generation routes
-  app.post("/api/documents", isAuthenticated, async (req: any, res) => {
+  app.post("/api/documents", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const { documentType, title, propertyId, data } = req.body;
       
       if (!documentType || !title) {
@@ -123,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const content = await generateRTLODocument(documentType, data || {});
       
       const document = await storage.createDocument({
-        userId,
+        userId: "anonymous",
         propertyId,
         documentType,
         title,
@@ -138,10 +118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/documents", isAuthenticated, async (req: any, res) => {
+  app.get("/api/documents", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const documents = await storage.getDocumentsByUser(userId);
+      const documents = await storage.getDocumentsByUser("anonymous");
       res.json(documents);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -149,17 +128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI lease analysis routes (premium feature)
-  app.post("/api/ai-analysis", isAuthenticated, async (req: any, res) => {
+  // AI lease analysis routes
+  app.post("/api/ai-analysis", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      // Check subscription status for premium features
-      if (user?.subscriptionStatus !== "active") {
-        return res.status(403).json({ message: "Premium subscription required for AI analysis" });
-      }
-
       const { leaseText, documentId } = req.body;
       
       if (!leaseText) {
@@ -170,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysis = await analyzeLeaseCompliance(leaseText);
       
       const aiAnalysis = await storage.createAIAnalysis({
-        userId,
+        userId: "anonymous",
         documentId,
         analysisType: "lease-review",
         originalText: leaseText,
@@ -189,10 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/ai-analyses", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai-analyses", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const analyses = await storage.getAIAnalysesByUser(userId);
+      const analyses = await storage.getAIAnalysesByUser("anonymous");
       
       // Parse analysis JSON for each record
       const parsedAnalyses = analyses.map(analysis => ({
