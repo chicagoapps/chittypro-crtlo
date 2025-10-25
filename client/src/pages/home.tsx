@@ -1,14 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { Property, RTLOQuestion, Document, AIAnalysis } from "@shared/schema";
 
 export default function Home() {
-  const { user } = useAuth();
-  
   const { data: properties } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
   });
@@ -21,41 +18,23 @@ export default function Home() {
     queryKey: ["/api/documents"],
   });
 
-  const isPremium = user?.subscriptionStatus === "active";
-
   return (
     <div className="p-6 space-y-8" data-testid="page-home">
       {/* Welcome Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">
-          Welcome back, {user?.firstName || "User"}!
+          Welcome to ChittyPro
         </h1>
         <p className="text-muted-foreground">
-          Manage your Chicago RTLO compliance with ease.
+          Your comprehensive Chicago RTLO compliance platform.
         </p>
       </div>
 
-      {/* Subscription Status */}
+      {/* Statistics */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Account Status</CardTitle>
-              <CardDescription>Your current subscription plan</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={isPremium ? "default" : "secondary"}>
-                {isPremium ? "Premium" : "Free"}
-              </Badge>
-              {!isPremium && (
-                <Link href="/subscribe">
-                  <Button size="sm" data-testid="button-upgrade">
-                    Upgrade
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
+          <CardTitle className="text-lg">Your Activity</CardTitle>
+          <CardDescription>Track your RTLO compliance progress</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -125,23 +104,21 @@ export default function Home() {
           </Card>
         </Link>
 
-        {isPremium && (
-          <Link href="/ai-analysis">
-            <Card className="hover-elevate cursor-pointer" data-testid="card-ai-analysis">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-robot text-primary"></i>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">AI Lease Analysis</CardTitle>
-                    <CardDescription>Premium feature</CardDescription>
-                  </div>
+        <Link href="/ai-analysis">
+          <Card className="hover-elevate cursor-pointer" data-testid="card-ai-analysis">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <div className="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center">
+                  <i className="fas fa-robot text-primary"></i>
                 </div>
-              </CardHeader>
-            </Card>
-          </Link>
-        )}
+                <div>
+                  <CardTitle className="text-lg">AI Lease Analysis</CardTitle>
+                  <CardDescription>Analyze lease documents</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
 
         <Link href="/legal-aid">
           <Card className="hover-elevate cursor-pointer" data-testid="card-legal-aid">

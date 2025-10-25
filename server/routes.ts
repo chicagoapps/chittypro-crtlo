@@ -177,61 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe subscription routes
-  app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
-    try {
-      if (!stripe) {
-        return res.status(503).json({ message: "Payment processing is currently unavailable. Please check back later." });
-      }
-
-      const userId = req.user.claims.sub;
-      let user = await storage.getUser(userId);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        const paymentIntent = subscription.latest_invoice as any;
-        
-        res.send({
-          subscriptionId: subscription.id,
-          clientSecret: paymentIntent?.payment_intent?.client_secret,
-        });
-        return;
-      }
-      
-      if (!user.email) {
-        return res.status(400).json({ message: 'No user email on file' });
-      }
-
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      });
-
-      const subscription = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [{
-          price: process.env.STRIPE_PRICE_ID || "price_1234567890", // Set your actual price ID
-        }],
-        payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
-      });
-
-      await storage.updateUserStripeInfo(userId, customer.id, subscription.id);
-  
-      const paymentIntent = (subscription.latest_invoice as any)?.payment_intent;
-      
-      res.send({
-        subscriptionId: subscription.id,
-        clientSecret: paymentIntent?.client_secret,
-      });
-    } catch (error: any) {
-      console.error("Subscription error:", error);
-      return res.status(400).send({ error: { message: error.message } });
-    }
+  // Stripe subscription routes - disabled without authentication
+  app.post('/api/get-or-create-subscription', async (req: any, res) => {
+    return res.status(503).json({ message: 'Authentication required for subscription management' });
   });
 
   // Legal aid directory endpoint

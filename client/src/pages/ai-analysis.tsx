@@ -7,8 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import type { AIAnalysis } from "@shared/schema";
 
@@ -16,7 +14,6 @@ export default function AIAnalysis() {
   const [leaseText, setLeaseText] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const { data: analyses, isLoading } = useQuery<AIAnalysis[]>({
     queryKey: ["/api/ai-analyses"],
@@ -36,27 +33,6 @@ export default function AIAnalysis() {
       setLeaseText("");
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      
-      if (error.message.includes("Premium subscription required")) {
-        toast({
-          title: "Premium Feature",
-          description: "AI lease analysis requires a premium subscription.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       toast({
         title: "Error",
         description: "Failed to analyze lease. Please try again.",
@@ -70,48 +46,6 @@ export default function AIAnalysis() {
     if (!leaseText.trim()) return;
     analyzeLeaseXMutation.mutate(leaseText);
   };
-
-  const isPremium = user?.subscriptionStatus === "active";
-
-  if (!isPremium) {
-    return (
-      <div className="p-6 space-y-8" data-testid="page-ai-analysis">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">AI Lease Analysis</h1>
-          <p className="text-muted-foreground">
-            Upload and analyze your lease agreements for Chicago RTLO compliance.
-          </p>
-        </div>
-
-        <Card className="border-accent/20">
-          <CardContent className="p-12">
-            <div className="text-center space-y-6">
-              <div className="bg-accent/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
-                <i className="fas fa-crown text-accent text-2xl"></i>
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">Premium Feature</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  AI-powered lease analysis is available with a premium subscription. Get detailed compliance reports and recommendations.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/subscribe">
-                  <Button size="lg" data-testid="button-upgrade-premium">
-                    <i className="fas fa-crown mr-2"></i>
-                    Upgrade to Premium
-                  </Button>
-                </Link>
-                <Button variant="outline" size="lg">
-                  Learn More
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-8" data-testid="page-ai-analysis">
