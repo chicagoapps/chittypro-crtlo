@@ -1,0 +1,35 @@
+# ChittyConnect Configuration for chittypro-crtlo
+service:
+  name: chittypro-crtlo
+  display_name: Chittypro crtlo
+  type: service
+  tier: 4
+  organization: CHICAGOAPPS
+  chitty_id: ${CHITTYPRO_CRTLO_SERVICE_ID}
+  domains:
+    production: crtlo.chitty.cc
+
+onboarding:
+  endpoint: https://get.chitty.cc/api/onboard
+  provisions: [chitty_id, service_token, certificate, trust_chain]
+
+auth:
+  provider: chittyauth
+  endpoint: https://auth.chitty.cc
+  service_token:
+    source: chittyconnect
+    key: CHITTYPRO_CRTLO_SERVICE_TOKEN
+
+secrets:
+  provider: chittyconnect
+  vault: 1password
+  paths:
+    production: op://ChittyOS/chittypro-crtlo-prod
+
+github:
+  repository: CHICAGOAPPS/chittypro-crtlo
+
+monitoring:
+  health:
+    endpoint: /health
+    interval: 60s
