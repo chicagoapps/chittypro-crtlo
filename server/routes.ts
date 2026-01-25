@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { analyzeRTLOQuestion, analyzeLeaseCompliance, generateRTLODocument } from "./openai";
+import { analyzeRTLOQuestion, analyzeLeaseCompliance, generateRTLODocument } from "./chittygateway";
 import { insertPropertySchema, insertRTLOQuestionSchema, insertDocumentSchema } from "@shared/schema";
 
 // Stripe setup - optional for development
@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Question is required" });
       }
 
-      // Analyze question with OpenAI
+      // Analyze question with ChittyGateway
       const analysis = await analyzeRTLOQuestion(question);
       
       const rtloQuestion = await storage.createRTLOQuestion({
@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Document type and title are required" });
       }
 
-      // Generate document content with OpenAI
+      // Generate document content with ChittyGateway
       const content = await generateRTLODocument(documentType, data || {});
       
       const document = await storage.createDocument({
@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Lease text is required" });
       }
 
-      // Analyze lease with OpenAI
+      // Analyze lease with ChittyGateway
       const analysis = await analyzeLeaseCompliance(leaseText);
       
       const aiAnalysis = await storage.createAIAnalysis({
